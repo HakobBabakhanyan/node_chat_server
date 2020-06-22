@@ -1,0 +1,40 @@
+{% extends '/../layout/app.twig' %}
+
+{% block body %}
+   <div class="container p-4">
+        <form method="post" action="/users/clients">
+          <div class="form-group">
+            <label for="formName"> Label</label>
+            <input name="name" type="text" class="form-control" id="formName"
+             placeholder="Name">
+          </div>
+           <div class="text-right">
+            <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+        </div>
+   <div class="container">
+           <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Name</th>
+              <th scope="col">Key</th>
+              <th scope="col">Create</th>
+            </tr>
+          </thead>
+          <tbody>
+
+          {% for client in clients %}
+           <tr>
+            <th scope="row">1</th>
+            <td>{{ client.name }}</td>
+            <td title="{{ client.key }}">{{ client.key|slice(0, 21) }}</td>
+            <td>{{ client.created_at }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+   </div>
+
+{% endblock %}
