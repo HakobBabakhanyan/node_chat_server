@@ -22,13 +22,13 @@ app.set('port', port);
 /**
  * Create HTTP server.
  */
-let servers = require('https').Server(credentials, app);
+let serverSecure = require('https').Server(credentials, app);
 
 var server = http.createServer(app);
 
 
 let Room = require('../app/models/room')
-var io = require('socket.io')(servers);
+var io = require('socket.io')(serverSecure);
 
 app.set('socket_io', io)
 // let stream = require('../chat/stream')(io);
@@ -39,37 +39,43 @@ app.set('socket_io', io)
 // })
 
 
-
 //
 
 /**
  * Listen on provided port, on all network interfaces.
  */
-servers.listen(port)
-// server.listen(port);
-// server.on('error', onError);
-servers.on('error', onError);
-// server.on('listening', onListening);
-servers.on('listening', onListening);
+serverSecure.listen(443)
+server.listen(80);
+server.on('error', onError);
+serverSecure.on('error', onError);
+server.on('listening', () => {
+    var addr = server.address();
+    var bind = typeof addr === 'string'
+        ? 'pipe ' + addr
+        : 'port ' + addr.port;
+    debug('Listening on ' + bind);
+});
+serverSecure.on('listening', onListening);
+
 
 /**
  * Normalize a port into a number, string, or false.
  */
 
 function normalizePort(val) {
-  var port = parseInt(val, 10);
+    var port = parseInt(val, 10);
 
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
+    if (isNaN(port)) {
+        // named pipe
+        return val;
+    }
 
-  if (port >= 0) {
-    // port number
-    return port;
-  }
+    if (port >= 0) {
+        // port number
+        return port;
+    }
 
-  return false;
+    return false;
 }
 
 /**
@@ -77,36 +83,37 @@ function normalizePort(val) {
  */
 
 function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
-  }
+    if (error.syscall !== 'listen') {
+        throw error;
+    }
 
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+    var bind = typeof port === 'string'
+        ? 'Pipe ' + port
+        : 'Port ' + port;
 
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
+    // handle specific listen errors with friendly messages
+    switch (error.code) {
+        case 'EACCES':
+            console.error(bind + ' requires elevated privileges');
+            process.exit(1);
+            break;
+        case 'EADDRINUSE':
+            console.error(bind + ' is already in use');
+            process.exit(1);
+            break;
+        default:
+            throw error;
+    }
 }
+
 /**
  * Event listener for HTTP server "listening" event.
  */
 
 function onListening() {
-  var addr = servers.address();
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
-  debug('Listening on ' + bind);
+    var addr = serverSecure.address();
+    var bind = typeof addr === 'string'
+        ? 'pipe ' + addr
+        : 'port ' + addr.port;
+    debug('Listening on ' + bind);
 }

@@ -15,10 +15,13 @@ var mongoose = require('mongoose')
 
 var app = express();
 
-//session
+app.use((req, res, next) => {
+  req.secure ? next() : res.redirect('https://' + req.headers.host + req.url)
+})
 
+//session
 app.use(session({
-  secret: 'Hb.secret',
+  secret: 'asdaevdcweds',
   resave: false,
   saveUninitialized: true,
   cookie: {  expires: 600000 }
@@ -27,7 +30,7 @@ app.use(session({
 // db connect
 mongoose.connect('mongodb://localhost:27017/test',
     {useNewUrlParser: true, useUnifiedTopology: true})
-    .then(() => console.log(app.settings.port,'🔥  MongoDB Connected...'))
+    .then(() => console.log(app.settings.port,'MongoDB Connected...'))
     .catch(err => console.log(err))
 
 
