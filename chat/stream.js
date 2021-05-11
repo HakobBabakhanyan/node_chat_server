@@ -14,14 +14,21 @@ module.exports = function (io) {
     }
 
     return  (socket)=>{
+
         socket.on('init', (data)=>{
 
-            clients[socket.id] = data.user
+            // console.log(data)
 
-            for (let client in clients){
-                socket.to(client).emit('online' , {users: getOnlineList(client)})
-            }
-            socket.emit('online' , {users: getOnlineList(socket.id)})
+            // clients[socket.id] = data
+            // console.log(io.of(socket.nsp.name))
+            // socket.emit('new user', data)
+            // socket.join(data.room)
+
+            // clients[socket.id] = data
+            // for (let client in clients){
+            //     socket.to(client).emit('online' , {users: getOnlineList(client)})
+            // }
+            // socket.emit('online' , {users: getOnlineList(socket.id)})
 
             // io.of(socket.nsp.name).emit('online' , {users: getOnlineList(socket.conn.id)});
 
@@ -45,23 +52,41 @@ module.exports = function (io) {
 
         });
 
-        socket.on('newUserStart', (data)=>{
-            socket.to(data.to).emit('newUserStart', {sender:data.sender});
+        socket.on('join room', (data)=>{
+            socket.join(data.room)
+
+            clients[socket.id] = data
+            socket.emit('online' , {users: getOnlineList(socket.id)})
+
+            socket.to(data.room).emit('new user', { name: data.name });
+            // socket.to(data.to).emit('newUserStart', {sender:data.sender});
         });
 
+        socket.on('new message', (data) => {
+            console.log(data)
+            socket.to(data.room).emit('new message', {
+                name : data.name,
+                message: data.message
+            })
+        })
 
-        socket.on('sdp', (data)=>{
-            socket.to(data.to).emit('sdp', {description: data.description, sender:data.sender});
-        });
-
-        socket.on('ice candidates', (data)=>{
-            socket.to(data.to).emit('ice candidates', {candidate:data.candidate, sender:data.sender});
-        });
-
-
-        socket.on('chat', (data)=>{
-            socket.to(data.room).emit('chat', {sender: data.sender, msg: data.msg});
-        });
+        // socket.on('newUserStart', (data)=>{
+        //     socket.to(data.to).emit('newUserStart', {sender:data.sender});
+        // });
+        //
+        //
+        // socket.on('sdp', (data)=>{
+        //     socket.to(data.to).emit('sdp', {description: data.description, sender:data.sender});
+        // });
+        //
+        // socket.on('ice candidates', (data)=>{
+        //     socket.to(data.to).emit('ice candidates', {candidate:data.candidate, sender:data.sender});
+        // });
+        //
+        //
+        // socket.on('chat', (data)=>{
+        //     socket.to(data.room).emit('chat', {sender: data.sender, msg: data.msg});
+        // });
 
 
 

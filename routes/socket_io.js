@@ -4,7 +4,7 @@ var SocketIoController = require('../app/http/controllers/socket_io')
 var cors = require('cors')
 
 /* GET home page. */
-router.post('/connect',cors(), SocketIoController.connect);
+router.post('/connect/:key', cors(), SocketIoController.connect);
 
 
 module.exports = router;

@@ -27,15 +27,16 @@ let servers = require('https').Server(credentials, app);
 var server = http.createServer(app);
 
 
-let Clinet = require('../app/models/client')
+let Room = require('../app/models/room')
 var io = require('socket.io')(servers);
 
-let stream = require('../chat/stream')(io);
-Clinet.find().then( data =>{
-  data.forEach(item => {
-    io.of('/'+item.key).on('connection', stream);
-  })
-})
+app.set('socket_io', io)
+// let stream = require('../chat/stream')(io);
+// Room.find().then( data =>{
+//   data.forEach(item => {
+//     io.of('/'+item.key).on('connection', stream);
+//   })
+// })
 
 
 
