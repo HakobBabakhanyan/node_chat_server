@@ -16,21 +16,26 @@ var http = require('http');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '3000'); // todo: change port
 app.set('port', port);
 
 /**
  * Create HTTP server.
  */
-let serverSecure = require('https').Server(credentials, app);
+const serverSecure = require('https').Server(credentials, app);
 
-var server = http.createServer(app);
+const server = http.createServer(app);
 
 
-let Room = require('../app/models/room')
-var io = require('socket.io')(serverSecure);
+const io = require('socket.io')(serverSecure, {
+    cors: {
+        origin: "*"
+    }
+});
 
-app.set('socket_io', io)
+const stream = require('../chat/stream')(io);
+io.of(/[A-Za-z0-9\/]+$/).on('connection', stream); // TODO: check token of(name, query, next)
+// app.set('socket_io', io)
 // let stream = require('../chat/stream')(io);
 // Room.find().then( data =>{
 //   data.forEach(item => {

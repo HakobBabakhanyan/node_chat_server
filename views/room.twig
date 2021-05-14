@@ -224,7 +224,7 @@
 {% block script %}
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        function newMessage(name, message, sender) {
+        function newMessage(name, message) {
 
             const msg = document.querySelector('#message').cloneNode(true);
             const chat = document.querySelector('.msger-chat');
@@ -232,7 +232,7 @@
             msg.classList.remove('d-none');
             msg.removeAttribute('id');
 
-            if (sender) {
+            if (name === window.localStorage.getItem('name')) {
                 msg.classList.add('right-msg')
             } else {
                 msg.classList.add('left-msg')
@@ -245,34 +245,9 @@
 
         }
 
-        const socket = io(`https://192.168.0.106/{{ key }}`);
+        const socket = io(`/{{ key }}`);
+        console.log(`/{{ key }}`);
 
-        socket.on('connect', () => {
-            const socketID = socket.io.engine.id;
-
-            socket.emit("init", {
-                room: '{{ title }}',
-                socketId: socketID,
-            });
-
-            socket.on('new user', function (r) {
-                // let ol = document.createElement('ol');
-                // ol.appendChild(document.createTextNode(r.name));
-                // document.querySelector('.list').appendChild(ol);
-
-            })
-
-            socket.on('new message', (data) => {
-                newMessage(data.name, data.message)
-
-            });
-
-            socket.on('online', (data) => {
-                console.log(data)
-            })
-
-
-        })
 
         function connect(name) {
             if (!name){
@@ -281,17 +256,36 @@
             document.querySelector('.msger').classList.remove("d-none");
             document.querySelector('#name').remove();
             window.localStorage.setItem('name', name);
-            socket.emit('join room', {
-                room: '{{ title }}',
-                name: name
+            socket.on('connect', () => {
+                const socketID = socket.id;
+
+                socket.emit("init", {
+                    socketId: socketID,
+                    name: name,
+                });
+
+                socket.on('new user', function (r) {
+                    // let ol = document.createElement('ol');
+                    // ol.appendChild(document.createTextNode(r.name));
+                    // document.querySelector('.list').appendChild(ol);
+
+                })
+
+                socket.on('message:from', (data) => {
+                    newMessage(data.name, data.message)
+                });
+
+                socket.on('users:online', (data) => {
+                    console.log(data)
+                })
             })
         }
         document.querySelector('.msger-inputarea').addEventListener('submit', (event) => {
             event.preventDefault();
             let text = event.target.querySelector('.msger-input').value
-            newMessage(name, text, true)
-            socket.emit('new message', {
-                id: socket.io.engine.id,
+            newMessage(window.localStorage.getItem('name'), text)
+            socket.emit('message:to', {
+                id: socket.id,
                 name: window.localStorage.getItem('name'),
                 room: '{{ title }}',
                 message: text

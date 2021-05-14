@@ -1,7 +1,8 @@
-var clients = {};
-
 
 module.exports = function (io) {
+    const clients = {};
+
+    let counts;
 
     function getOnlineList(id) {
 
@@ -15,56 +16,26 @@ module.exports = function (io) {
 
     return  (socket)=>{
 
+        socket.nsp.fetchSockets().then( (e) => {
+            console.log(e.length)
+        })
+
         socket.on('init', (data)=>{
 
-            // console.log(data)
+            clients[data.name] = {
+                name: data.name,
+                id: socket.id
+            }
 
-            // clients[socket.id] = data
-            // console.log(io.of(socket.nsp.name))
-            // socket.emit('new user', data)
-            // socket.join(data.room)
-
-            // clients[socket.id] = data
-            // for (let client in clients){
-            //     socket.to(client).emit('online' , {users: getOnlineList(client)})
-            // }
-            // socket.emit('online' , {users: getOnlineList(socket.id)})
-
-            // io.of(socket.nsp.name).emit('online' , {users: getOnlineList(socket.conn.id)});
-
-            // console.log(socket.nsp.name)
-            //subscribe/join a room
-            //     socket.join(data.room);
-            //     socket.join(data.socketId);
-            //     socket.name = data.name;
-            //     clients[data.name] = data.socketId
-            //     // console.log(socket.adapter.rooms[data.room],4)
-            //     console.log(socket.adapter.sids,4)
-            //     console.log(data.room)
-            //
-            // //Inform other members in the room of new user's arrival
-            // // if(socket.adapter.rooms[data.room].length > 1){
-            // //     socket.to(data.room).emit('new user', {socketId:data.socketId});
-            // // }
-            // if(data.to){
-            //     socket.to(data.to).emit('new user', {socketId:data.socketId});
-            // }
-
+            socket.join(socket.nsp.name)
+            const users = [];
+            for (let client in clients){
+                users.push(client);
+            }
+            socket.emit('users:online', users)
         });
-
-        socket.on('join room', (data)=>{
-            socket.join(data.room)
-
-            clients[socket.id] = data
-            socket.emit('online' , {users: getOnlineList(socket.id)})
-
-            socket.to(data.room).emit('new user', { name: data.name });
-            // socket.to(data.to).emit('newUserStart', {sender:data.sender});
-        });
-
-        socket.on('new message', (data) => {
-            console.log(data)
-            socket.to(data.room).emit('new message', {
+        socket.on('message:to', (data) => {
+            socket.to(socket.nsp.name).emit('message:from', {
                 name : data.name,
                 message: data.message
             })
@@ -87,7 +58,6 @@ module.exports = function (io) {
         // socket.on('chat', (data)=>{
         //     socket.to(data.room).emit('chat', {sender: data.sender, msg: data.msg});
         // });
-
 
 
         socket.on('disconnect',() => {

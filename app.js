@@ -4,7 +4,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-var indexRouter = require('./routes/index');
+var indexRouter = require('./routes');
 var usersRouter = require('./routes/users');
 var roomRouter = require('./routes/room');
 
@@ -14,6 +14,7 @@ var session = require('express-session')
 var mongoose = require('mongoose')
 
 var app = express();
+require('dotenv').config()
 
 app.use((req, res, next) => {
   req.secure ? next() : res.redirect('https://' + req.headers.host + req.url)
@@ -35,8 +36,8 @@ mongoose.connect('mongodb://localhost:27017/test',
 
 
 // view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'twig');
+// app.set('views', path.join(__dirname, 'views'));
+// app.set('view engine', 'twig');
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -52,7 +53,7 @@ app.use('/room', roomRouter);
 app.use(function(req, res, next) {
   next(createError(404));
 });
-
+console.log(process.env.TEST);
 // error handler
 app.use(function(err, req, res, next) {
   // set locals, only providing error in development
