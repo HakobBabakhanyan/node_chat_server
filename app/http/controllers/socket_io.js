@@ -1,6 +1,6 @@
 const Client = require("../../models/client.js");
 
-let stream = require('../../../chat/stream');
+let stream = require('../../../ws/stream');
 
 
 async function connect(req, res){

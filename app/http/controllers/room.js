@@ -3,21 +3,21 @@ const Room = require("../../models/room")
 
 async function store(req, res) {
 
-    const room = await Room.create(
-        {
-            name: req.body.name
-        }
-    )
 
-    res.redirect(`/room/${room.key}`)
+    const check = await Room.findOne({});
 
+    if(!check){
+        await Room.create(
+            {
+                name: req.body.name
+            }
+        )
+    }
+
+    const room = await Room.find({});
+
+    return res.json(room)
 }
-
-async function create(req, res) {
-
-    res.render('create', {title: 'create'});
-}
-
 async function room(req, res) {
     // const { email, password } = req.body;
 
@@ -25,15 +25,23 @@ async function room(req, res) {
         key: req.params.key
     });
 
-    if (!room) {
-        res.redirect('/room/create')
+    if (!room[0]) {
+      return  res.json(null, 412)
     }
 
     return res.json({roomName: room[0].name})
 }
 
+async function index(req, res) {
+    // const { email, password } = req.body;
+
+    const room = await Room.find({});
+
+    return res.json(room)
+}
+
 module.exports = {
     store,
-    create,
-    room
+    room,
+    index
 }

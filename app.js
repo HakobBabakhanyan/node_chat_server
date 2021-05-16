@@ -8,7 +8,6 @@ var indexRouter = require('./routes');
 var usersRouter = require('./routes/users');
 var roomRouter = require('./routes/room');
 
-var session = require('express-session')
 
 // db
 var mongoose = require('mongoose')
@@ -19,14 +18,9 @@ require('dotenv').config()
 app.use((req, res, next) => {
   req.secure ? next() : res.redirect('https://' + req.headers.host + req.url)
 })
+const cors = require('cors')
 
-//session
-app.use(session({
-  secret: 'asdaevdcweds',
-  resave: false,
-  saveUninitialized: true,
-  cookie: {  expires: 600000 }
-}))
+app.use(cors()) // todo route room post
 
 // db connect
 mongoose.connect('mongodb://localhost:27017/test',
@@ -62,7 +56,7 @@ app.use(function(err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.render('error');
+  res.send('error');
 });
 
 

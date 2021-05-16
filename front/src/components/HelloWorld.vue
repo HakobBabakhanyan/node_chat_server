@@ -1,22 +1,56 @@
 <template>
   <div>
-    <router-link to="/room/3bdfec0517114c49e555">Go to Home</router-link>
+
+    <div  v-for="room in rooms" class="flex justify-start cursor-pointer text-gray-700 hover:text-blue-400 hover:bg-blue-100 rounded-md px-2 py-2 my-2">
+      <span class="bg-gray-400 h-2 w-2 m-2 rounded-full"></span>
+      <div class="flex-grow font-medium px-2"><router-link :to="`/room/${room.key}`">{{ room.name }}</router-link></div>
+      <div class="text-sm font-normal text-gray-500 tracking-wide">Team</div>
+    </div>
+<!--    <div class="flex justify-start cursor-pointer text-gray-700 hover:text-blue-400 hover:bg-blue-100 rounded-md px-2 py-2 my-2">-->
+<!--      <span class="bg-green-400 h-2 w-2 m-2 rounded-full"></span>-->
+<!--      <div class="flex-grow font-medium px-2">Jeffrey Wey</div>-->
+<!--      <div class="text-sm font-normal text-gray-500 tracking-wide">Member</div>-->
+<!--    </div>-->
+    <div>
+      <input class="shadow appearance-none border rounded py-2 px-3 text-grey-darker"
+             type="text" v-model="roomName">
+      <button v-on:click="createRoom"
+              class="tracking-wider text-white bg-blue-500 px-4 py-1 text-sm rounded leading-loose mx-2 font-semibold">
+        Create
+      </button>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { ref, defineComponent } from 'vue'
+import {defineComponent} from 'vue'
+import axios from "axios";
+
 export default defineComponent({
   name: 'HelloWorld',
-  props: {
-    msg: {
-      type: String,
-      required: true
+  data() {
+    return {
+      rooms: null,
+      roomName: null
     }
   },
-  setup: () => {
-    const count = ref(0)
-    return { count }
+  methods: {
+    createRoom() {
+      if (this.roomName) {
+        axios.post(`https://127.0.0.1/room/create`, {
+          name: this.roomName
+        }).then(e => {
+          this.rooms = e.data
+        })
+      }
+    }
+  },
+  mounted() {
+    axios.get(`https://127.0.0.1/room/index`).then(e => {
+      this.rooms = e.data
+    }).catch((e) => {
+      alert('error')
+    });
   }
 })
 </script>

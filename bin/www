@@ -10,7 +10,7 @@ var credentials = {key: privateKey, cert: certificate};
 
 
 var app = require('../app');
-var debug = require('debug')('chat-server:server');
+var debug = require('debug')('ws-server:server');
 var http = require('http');
 /**
  * Get port from environment and store in Express.
@@ -33,10 +33,10 @@ const io = require('socket.io')(serverSecure, {
     }
 });
 
-const stream = require('../chat/stream')(io);
+const stream = require('../ws/stream')(io);
 io.of(/[A-Za-z0-9\/]+$/).on('connection', stream); // TODO: check token of(name, query, next)
 // app.set('socket_io', io)
-// let stream = require('../chat/stream')(io);
+// let stream = require('../ws/stream')(io);
 // Room.find().then( data =>{
 //   data.forEach(item => {
 //     io.of('/'+item.key).on('connection', stream);
