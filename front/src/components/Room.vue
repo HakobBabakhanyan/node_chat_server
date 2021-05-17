@@ -21,10 +21,12 @@
         </button>
       </div>
 
-      <video width="460" height="306" :srcObject ="video" preload autoplay>
-      </video>
-      <video width="460" height="306" :srcObject ="videoS" preload autoplay>
-      </video>
+      <div class="flex">
+        <video v-if="video" width="200" height="200" :srcObject ="video" preload autoplay>
+        </video>
+        <video v-if="videoS" width="200" height="200" :srcObject ="videoS" preload autoplay>
+        </video>
+      </div>
       <button v-on:click="callUser"
               class="tracking-wider text-white bg-blue-500 px-4 py-1 text-sm rounded leading-loose mx-2 font-semibold">
         video
@@ -64,15 +66,16 @@ export default defineComponent({
       pc: {} as RTCPeerConnection[],
       userConnected: false,
       userName: null,
-      video: {} ,
-      videoS: {} ,
+      video: undefined ,
+      videoS: undefined ,
       socket: {} as Socket,
       peerConnection: {} as RTCPeerConnection,
       mediaConstraints: {
         audio: true,
-        // video: {width: 400, height: 400},
-        video: false,
-      }
+        video: {width: 200, height: 200},
+        // video: false,
+      },
+      isAlreadyCalling: false
     }
   },
   mounted() {
@@ -102,10 +105,10 @@ export default defineComponent({
             this.users = users;
           })
           socket.on('message:from', (data) => {
-            console.log(data);
             this.messages = [...this.messages, data]
           })
           socket.on("call-made", async data => {
+            console.log('call-made');
             await this.peerConnection.setRemoteDescription(
                 new RTCSessionDescription(data.offer)
             );
@@ -117,23 +120,20 @@ export default defineComponent({
               to: data.socket
             });
           });
-
           socket.on("answer-made", async data => {
-            console.log(data);
+            console.log('answer-made');
             await this.peerConnection.setRemoteDescription(
                 new RTCSessionDescription(data.answer)
             );
-
-            // if (!isAlreadyCalling) {
-            //   callUser(data.socket);
-            //   isAlreadyCalling = true;
-            // }
+            if (!this.isAlreadyCalling) {
+              await this.callUser();
+              this.isAlreadyCalling = true;
+            }
           });
-
 
         });
 
-        const captureStream =  navigator.mediaDevices.getDisplayMedia({}).then(stream=>{
+        const captureStream =  navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream=>{
           this.video = stream;
           stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
         });
@@ -142,7 +142,6 @@ export default defineComponent({
         const self= this;
         this.peerConnection.ontrack = function ({streams: [stream]}) {
           self.videoS = stream;
-          console.log(stream);
           // const remoteVideo = document.getElementById("remote-video");
           // if (remoteVideo) {
           //   remoteVideo.srcObject = stream;

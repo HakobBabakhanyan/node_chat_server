@@ -3,8 +3,6 @@ module.exports = (io) => {
 
     return (socket) => {
 
-
-
         socket.on('init', (data) => {
             socket.userName = data.userName
             clients[data.userName] = {
@@ -41,24 +39,8 @@ module.exports = (io) => {
                 text: data.message
             })
         })
-        socket.on('sdp', (data) => {
-            socket.to(socket.nsp.name).emit('sdp', {description: data.description, sender: data.sender});
-        })
-
-
-
-        socket.on('ice:candidates', (data) => {
-            socket.to(socket.nsp.name).emit('ice:candidates', {candidate: data.candidate, name: data.userName});
-        });
-        //
-        //
-        // socket.on('ws', (data)=>{
-        //     socket.to(data.room).emit('ws', {sender: data.sender, msg: data.msg});
-        // });
-
 
         socket.on('disconnect', () => {
-            console.log(socket.userName);
             delete clients[socket.userName]
             const users = [];
             for (let client in clients) {
@@ -74,13 +56,17 @@ module.exports = (io) => {
                 socket: socket.id
             });
         });
-
         socket.on("make-answer", data => {
-            socket.to(data.to).emit("answer-made", {
+            socket.to(socket.nsp.name).emit("answer-made", {
                 socket: socket.id,
                 answer: data.answer
             });
         });
+
+        // socket.on('ice-candidates', (data)=>{
+        //     socket.to(socket.nsp.name).emit('ice-candidates', {candidate:data.candidate});
+        // });
+
 
     }
 };
