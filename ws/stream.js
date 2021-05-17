@@ -3,9 +3,7 @@ module.exports = (io) => {
 
     return (socket) => {
 
-        socket.nsp.fetchSockets().then((e) => {
-            console.log(e.length)
-        })
+
 
         socket.on('init', (data) => {
             socket.userName = data.userName
@@ -13,6 +11,13 @@ module.exports = (io) => {
                 name: data.userName,
                 id: socket.id
             }
+
+            socket.nsp.fetchSockets().then((e) => {
+                console.log(e.map(soc => {
+                    console.log(soc.userName);
+                    return soc.id
+                }).filter((value, index, self) => self.indexOf(value) === index).length, e.length);
+            });
 
             socket.join(socket.nsp.name)
             const users = [];
@@ -40,15 +45,8 @@ module.exports = (io) => {
             socket.to(socket.nsp.name).emit('sdp', {description: data.description, sender: data.sender});
         })
 
-        // socket.on('newUserStart', (data)=>{
-        //     socket.to(data.to).emit('newUserStart', {sender:data.sender});
-        // });
-        //
-        //
-        // socket.on('sdp', (data)=>{
-        //     socket.to(data.to).emit('sdp', {description: data.description, sender:data.sender});
-        // });
-        //
+
+
         socket.on('ice:candidates', (data) => {
             socket.to(socket.nsp.name).emit('ice:candidates', {candidate: data.candidate, name: data.userName});
         });
@@ -60,6 +58,7 @@ module.exports = (io) => {
 
 
         socket.on('disconnect', () => {
+            console.log(socket.userName);
             delete clients[socket.userName]
             const users = [];
             for (let client in clients) {
@@ -67,6 +66,21 @@ module.exports = (io) => {
             }
             socket.to(socket.nsp.name).emit('users:online', users);
         })
+
+
+        socket.on("call-user", data => {
+            socket.to(socket.nsp.name).emit("call-made", {
+                offer: data.offer,
+                socket: socket.id
+            });
+        });
+
+        socket.on("make-answer", data => {
+            socket.to(data.to).emit("answer-made", {
+                socket: socket.id,
+                answer: data.answer
+            });
+        });
 
     }
 };

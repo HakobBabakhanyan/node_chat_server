@@ -21,11 +21,11 @@
         </button>
       </div>
 
-      <video width="460" height="306" :src="video" preload autoplay>
+      <video width="460" height="306" :srcObject ="video" preload autoplay>
       </video>
-      <video width="460" height="306" :src="videoS" preload autoplay>
+      <video width="460" height="306" :srcObject ="videoS" preload autoplay>
       </video>
-      <button v-on:click="test"
+      <button v-on:click="callUser"
               class="tracking-wider text-white bg-blue-500 px-4 py-1 text-sm rounded leading-loose mx-2 font-semibold">
         video
       </button>
@@ -46,7 +46,6 @@ import {defineComponent} from 'vue'
 import axios from "axios";
 import Chat from "./Chat.vue";
 import io, {Socket} from "socket.io-client";
-import * as constants from "constants";
 
 
 declare interface Message {
@@ -62,15 +61,17 @@ export default defineComponent({
       roomName: null,
       messages: [] as Message[],
       users: [],
-      pc: {},
+      pc: {} as RTCPeerConnection[],
       userConnected: false,
       userName: null,
-      video: '',
-      videoS: '',
+      video: {} ,
+      videoS: {} ,
       socket: {} as Socket,
+      peerConnection: {} as RTCPeerConnection,
       mediaConstraints: {
-        audio: false,
-        video: {width: 400, height: 400},
+        audio: true,
+        // video: {width: 400, height: 400},
+        video: false,
       }
     }
   },
@@ -81,6 +82,10 @@ export default defineComponent({
       console.log(e.response.status);
       this.$router.push({path: '/'})
     });
+
+    this.peerConnection = new RTCPeerConnection();
+
+
   },
   methods: {
     connect() {
@@ -100,191 +105,60 @@ export default defineComponent({
             console.log(data);
             this.messages = [...this.messages, data]
           })
-          ///
-          socket.on('new:user', async (data) => {
-            socket.emit('new:userStart', {to: data.name, sender: this.userName});
+          socket.on("call-made", async data => {
+            await this.peerConnection.setRemoteDescription(
+                new RTCSessionDescription(data.offer)
+            );
+            const answer = await this.peerConnection.createAnswer();
+            await this.peerConnection.setLocalDescription(new RTCSessionDescription(answer));
 
-            this.pc[data.name] = new RTCPeerConnection();
-            await this.getUserFullMediaNew().then((stream) => {
-              stream.getTracks().forEach((track) => {
-                this.pc[data.name].addTrack(track, stream);//should trigger negotiationneeded event
-              });
+            socket.emit("make-answer", {
+              answer,
+              to: data.socket
             });
-            this.pc[data.name].onicecandidate = ({candidate}) => {
-              console.log('onicecandidate');
-              socket.emit('ice:candidates', {candidate: candidate, to: data.name, sender: this.userName});
-            };
-            // true
-            this.pc[data.name].onnegotiationneeded = async () => {
-              let offer = await this.pc[data.name].createOffer();
+          });
 
-              await this.pc[data.name].setLocalDescription(offer);
+          socket.on("answer-made", async data => {
+            console.log(data);
+            await this.peerConnection.setRemoteDescription(
+                new RTCSessionDescription(data.answer)
+            );
 
-              this.socket.emit('sdp', {
-                description: this.pc[data.name].localDescription,
-                to: data.name,
-                sender: this.userName
-              });
-            };
-            //
-            this.pc[data.name].ontrack = (e) => {
-              alert(4)
-            }
+            // if (!isAlreadyCalling) {
+            //   callUser(data.socket);
+            //   isAlreadyCalling = true;
+            // }
+          });
 
-            this.pc[data.name].onconnectionstatechange = (d) => {
-              switch (this.pc[data.name].iceConnectionState) {
-                case 'disconnected':
-                case 'failed':
-                  alert('failed')
-                  break;
-
-                case 'closed':
-                  alert('closed');
-                  break;
-              }
-            };
-            this.pc[data.name].onsignalingstatechange = (d) => {
-              switch (this.pc[data.name].signalingState) {
-                case 'closed':
-                  console.log("Signalling state is 'closed'");
-                  alert("Signalling state is 'closed'");
-                  break;
-              }
-            };
-
-
-          })
-
-          socket.on('news:userStart', async (data) => {
-            alert(2)
-
-            this.pc[data.name] = new RTCPeerConnection();
-
-            await this.getUserFullMediaNew().then((stream) => {
-              stream.getTracks().forEach((track) => {
-                this.pc[data.name].addTrack(track, stream);//should trigger negotiationneeded event
-              });
-            });
-            this.pc[data.name].onicecandidate = ({candidate}) => {
-              console.log('onicecandidate');
-              socket.emit('ice:candidates', {candidate: candidate, to: data.name, sender: this.userName});
-            };
-            this.pc[data.name].ontrack = (e) => {
-              alert(4)
-            }
-            this.pc[data.name].onconnectionstatechange = (d) => {
-              switch (this.pc[data.name].iceConnectionState) {
-                case 'disconnected':
-                case 'failed':
-                  alert('failed')
-                  break;
-
-                case 'closed':
-                  alert('closed');
-                  break;
-              }
-            };
-            this.pc[data.name].onsignalingstatechange = (d) => {
-              switch (pc[partnerName].signalingState) {
-                case 'closed':
-                  console.log("Signalling state is 'closed'");
-                  h.closeVideo(partnerName);
-                  break;
-              }
-            };
-
-
-          })
-
-          socket.on('ice:candidates', async (data) => {
-            if (data.candidate) {
-
-              this.pc[data.sender] = new RTCPeerConnection();
-
-              await this.getUserFullMediaNew().then((stream) => {
-                stream.getTracks().forEach((track) => {
-                  this.pc[data.sender].addTrack(track, stream);//should trigger negotiationneeded event
-                });
-
-              });
-
-              console.log(this.pc[data.sender])
-
-              await this.pc[data.sender].addIceCandidate(new RTCIceCandidate(data.candidate))
-
-            }
-
-          })
-
-          socket.on('sdp', async (data) => {
-            console.log(data, 'sdp', data.sender, this.userName)
-            if (data.description.type === 'offer') {
-              data.description ? await this.pc[data.sender].setRemoteDescription(new RTCSessionDescription(data.description)) : '';
-
-              this.getUserFullMediaNew().then(async (stream) => {
-                stream.getTracks().forEach((track) => {
-                  this.pc[data.sender].addTrack(track, stream);
-                });
-
-                let answer = await this.pc[data.sender].createAnswer();
-                await this.pc[data.sender].setLocalDescription(answer);
-
-                socket.emit('sdp', {
-                  description: this.pc[data.sender].localDescription,
-                  to: data.sender,
-                  sender: socketId
-                });
-
-              })
-            }
-            // this.videoS = data.description.sdp;
-          })
 
         });
+
+        const captureStream =  navigator.mediaDevices.getDisplayMedia({}).then(stream=>{
+          this.video = stream;
+          stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
+        });
+
+
+        const self= this;
+        this.peerConnection.ontrack = function ({streams: [stream]}) {
+          self.videoS = stream;
+          console.log(stream);
+          // const remoteVideo = document.getElementById("remote-video");
+          // if (remoteVideo) {
+          //   remoteVideo.srcObject = stream;
+          // }
+        };
       }
     },
-    test() {
+    async callUser() {
 
-      const self = this;
-      this.pc[this.userName] = new RTCPeerConnection();
+      const offer = await this.peerConnection.createOffer();
+      await this.peerConnection.setLocalDescription(new RTCSessionDescription(offer));
 
-      this.getUserFullMediaNew().then((stream) => {
-
-        for (const track of stream.getTracks()) {
-          this.pc[this.userName].addTrack(track, stream);
-        }
-
-        this.pc[this.userName].onicecandidate = ({candidate}) => {
-          console.log('onicecandidate');
-          this.socket.emit('ice:candidates', {candidate: candidate, userName: this.userName});
-        };
-        this.pc[this.userName].ontrack = () => {
-          alert(1)
-          // socket.emit('ice candidates', {candidate: candidate, to: partnerName, sender: socketId});
-        };
-
-        this.pc[this.userName].onnegotiationneeded = async () => {
-          // let offer = await this.pc[this.userName].createOffer();
-          //
-          // await this.pc[this.userName].setLocalDescription(offer);
-
-
-          // let answer = await pc.createAnswer();
-          //
-          // await pc.setLocalDescription(answer);
-
-          // self.socket.emit('sdp', {
-          //   description: this.pc[this.userName].localDescription,
-          //   user : this.userName
-          // });
-        };
-
-        // this.socket.emit('std', {
-        //   pc
-        // })
-
-
-      })
+      this.socket.emit("call-user", {
+        offer,
+        to: this.userName
+      });
     }
     ,
     sendMessage(message: any) {
@@ -294,7 +168,6 @@ export default defineComponent({
         message
       })
 
-      /** @type [{name: string, text: string}] */
       this.messages = [...this.messages, {
         name: this.userName,
         text: message
