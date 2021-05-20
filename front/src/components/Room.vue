@@ -22,10 +22,17 @@
       </div>
 
       <div class="flex">
-        <video v-if="video" width="200" height="200" :srcObject ="video" preload autoplay>
-        </video>
-        <video v-if="videoS" width="200" height="200" :srcObject ="videoS" preload autoplay>
-        </video>
+        <div v-for="user in users" class="m-2">
+          <video v-if="videos[user]" width="200" height="200" :srcObject="videos[user]" preload autoplay>
+          </video>
+          <div v-else>
+            {{ user }}
+          </div>
+        </div>
+        <!--        <video v-if="video" width="200" height="200" :srcObject ="video" preload autoplay>-->
+        <!--        </video>-->
+        <!--        <video v-if="videoS" width="200" height="200" :srcObject ="videoS" preload autoplay>-->
+        <!--        </video>-->
       </div>
       <button v-on:click="callUser"
               class="tracking-wider text-white bg-blue-500 px-4 py-1 text-sm rounded leading-loose mx-2 font-semibold">
@@ -66,8 +73,9 @@ export default defineComponent({
       pc: {} as RTCPeerConnection[],
       userConnected: false,
       userName: null,
-      video: undefined ,
-      videoS: undefined ,
+      video: undefined,
+      videos: [] as MediaStream[],
+      videoS: undefined,
       socket: {} as Socket,
       peerConnection: {} as RTCPeerConnection,
       mediaConstraints: {
@@ -121,31 +129,56 @@ export default defineComponent({
             });
           });
           socket.on("answer-made", async data => {
-            console.log('answer-made');
+            console.log('answer-made', data.answer);
             await this.peerConnection.setRemoteDescription(
                 new RTCSessionDescription(data.answer)
             );
-            if (!this.isAlreadyCalling) {
-              await this.callUser();
-              this.isAlreadyCalling = true;
-            }
+            // if (!this.isAlreadyCalling) {
+            //   await this.callUser();
+            //   this.isAlreadyCalling = true;
+            // }
+          });
+          socket.on("ice-candidates", async data => {
+            const candidate = new RTCIceCandidate({sdpMLineIndex: data.sdpMLineIndex, candidate: data.candidate});
+            this.peerConnection.addIceCandidate(candidate);
           });
 
         });
 
-        const captureStream =  navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream=>{
-          this.video = stream;
+        navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream => {
+          this.videos[this.userName] = stream;
           stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
+        }).catch(e => {
+          navigator.mediaDevices.getDisplayMedia(this.mediaConstraints).then(stream => {
+            this.videos[this.userName] = stream;
+            stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
+          })
         });
+        console.log(this.videos,12,this.userName)
 
 
-        const self= this;
+        const self = this;
         this.peerConnection.ontrack = function ({streams: [stream]}) {
           self.videoS = stream;
+          // if (remoteVideo) {
+          //   remoteVideo.srcObject = stream;
+          // }
+        };
+        this.peerConnection.onicecandidate = function ({candidate}) {
+          if (candidate && candidate.candidate) {
+            candidate && socket.emit('ice-candidates', {
+              candidate: candidate.candidate,
+              userName: self.userName,
+              sdpMLineIndex: candidate.sdpMLineIndex
+            })
+          }
           // const remoteVideo = document.getElementById("remote-video");
           // if (remoteVideo) {
           //   remoteVideo.srcObject = stream;
           // }
+        };
+        this.peerConnection.onnegotiationneeded = function (event) {
+          console.log(event);
         };
       }
     },

@@ -63,9 +63,14 @@ module.exports = (io) => {
             });
         });
 
-        // socket.on('ice-candidates', (data)=>{
-        //     socket.to(socket.nsp.name).emit('ice-candidates', {candidate:data.candidate});
-        // });
+        socket.on('ice-candidates', (data)=>{
+                socket.to(socket.nsp.name).emit('ice-candidates', {
+                    candidate:data.candidate,
+                    sdpMLineIndex:data.sdpMLineIndex,
+                    userName:data.userName
+                });
+
+        });
 
 
     }
