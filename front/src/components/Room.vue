@@ -78,6 +78,7 @@ export default defineComponent({
       videoS: undefined,
       socket: {} as Socket,
       peerConnection: {} as RTCPeerConnection,
+      peerConnections: {} as RTCPeerConnection[],
       mediaConstraints: {
         audio: true,
         video: {width: 200, height: 200},
@@ -112,25 +113,73 @@ export default defineComponent({
           socket.on('users:online', (users) => {
             this.users = users;
           })
+          socket.on('new:user', (data) => {
+            console.log('new:user', data);
+            const self = this;
+            this.peerConnections[data.userName] = new RTCPeerConnection();
+            this.peerConnections[data.userName].ontrack = function ({streams: [stream]}) {
+              self.videos[data.userName] = stream
+            };
+            this.peerConnections[data.userName].onicecandidate = function ({candidate}) {
+              if (candidate && candidate.candidate) {
+                console.log('ice-candidates', 'new:user');
+                candidate && socket.emit('ice-candidates', {
+                  candidate: candidate.candidate,
+                  userName: self.userName,
+                  sdpMLineIndex: candidate.sdpMLineIndex
+                })
+              }}
+            this.peerConnections[data.userName].onnegotiationneeded = function (event) {
+              console.log(event);
+            };
+            socket.emit('new:userStart', {
+              userName: this.userName,
+              to:data.userName
+            })
+          })
+          socket.on('new:userStart', async (data) => {
+            console.log('new:userStart', data);
+            const self = this;
+
+            this.peerConnections[data.userName] = new RTCPeerConnection();
+            this.peerConnections[data.userName].ontrack = function ({streams: [stream]}) {
+              self.videos[data.userName] = stream
+              console.log(stream, 'new:userStart')
+            };
+            this.peerConnections[data.userName].onicecandidate = function ({candidate}) {
+              if (candidate && candidate.candidate) {
+                console.log('ice-candidates', 'new:userStart');
+                candidate && socket.emit('ice-candidates', {
+                  candidate: candidate.candidate,
+                  userName: self.userName,
+                  sdpMLineIndex: candidate.sdpMLineIndex
+                })
+              }}
+            this.peerConnections[data.userName].onnegotiationneeded = function (event) {
+              console.log(event, 2);
+            };
+
+          })
           socket.on('message:from', (data) => {
             this.messages = [...this.messages, data]
           })
           socket.on("call-made", async data => {
             console.log('call-made');
-            await this.peerConnection.setRemoteDescription(
+            await this.peerConnections[data.userName].setRemoteDescription(
                 new RTCSessionDescription(data.offer)
             );
-            const answer = await this.peerConnection.createAnswer();
-            await this.peerConnection.setLocalDescription(new RTCSessionDescription(answer));
+            const answer = await this.peerConnections[data.userName].createAnswer();
+            await this.peerConnections[data.userName].setLocalDescription(new RTCSessionDescription(answer));
 
             socket.emit("make-answer", {
               answer,
-              to: data.socket
+              to: data.userName,
+              userName: this.userName
             });
           });
           socket.on("answer-made", async data => {
-            console.log('answer-made', data.answer);
-            await this.peerConnection.setRemoteDescription(
+            console.log('answer-made');
+            await this.peerConnections[data.userName].setRemoteDescription(
                 new RTCSessionDescription(data.answer)
             );
             // if (!this.isAlreadyCalling) {
@@ -138,24 +187,22 @@ export default defineComponent({
             //   this.isAlreadyCalling = true;
             // }
           });
-          socket.on("ice-candidates", async data => {
+          socket.on("ice-candidates",  data => {
             const candidate = new RTCIceCandidate({sdpMLineIndex: data.sdpMLineIndex, candidate: data.candidate});
-            this.peerConnection.addIceCandidate(candidate);
+            this.peerConnections[data.userName].addIceCandidate(candidate);
           });
 
         });
 
-        navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream => {
-          this.videos[this.userName] = stream;
-          stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
-        }).catch(e => {
-          navigator.mediaDevices.getDisplayMedia(this.mediaConstraints).then(stream => {
-            this.videos[this.userName] = stream;
-            stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
-          })
-        });
-        console.log(this.videos,12,this.userName)
-
+        // navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream => {
+        //   this.videos[this.userName] = stream;
+        //   stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
+        // }).catch(e => {
+        //   navigator.mediaDevices.getDisplayMedia(this.mediaConstraints).then(stream => {
+        //     this.videos[this.userName] = stream;
+        //     stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
+        //   })
+        // });
 
         const self = this;
         this.peerConnection.ontrack = function ({streams: [stream]}) {
@@ -178,21 +225,48 @@ export default defineComponent({
           // }
         };
         this.peerConnection.onnegotiationneeded = function (event) {
-          console.log(event);
+          console.log(event, 1);
         };
       }
     },
     async callUser() {
 
-      const offer = await this.peerConnection.createOffer();
-      await this.peerConnection.setLocalDescription(new RTCSessionDescription(offer));
+      const self = this;
+       navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream => {
+         self.videos[this.userName!] = stream;
+        stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
+      }).catch(e => {
+        navigator.mediaDevices.getDisplayMedia(this.mediaConstraints).then(stream => {
+          self.videos[this.userName!] = stream;
+
+          stream.getTracks().forEach(  (track: any) => this.peerConnection.addTrack(track, stream));
+          for ( const userName in self.peerConnections){
+
+            this.call_user(stream, userName)
+
+          }
+        })
+      });
+      // const offer = await this.peerConnection.createOffer();
+      // await this.peerConnection.setLocalDescription(new RTCSessionDescription(offer));
+      //
+      // this.socket.emit("call-user", {
+      //   offer,
+      //   to: this.userName
+      // });
+    },
+    async call_user(stream: any, userName: any){
+      stream.getTracks().forEach((track: any) => this.peerConnections[userName!].addTrack(track, stream));
+
+      const offer = await this.peerConnections[userName!].createOffer();
+      await this.peerConnections[userName!].setLocalDescription(new RTCSessionDescription(offer));
 
       this.socket.emit("call-user", {
         offer,
-        to: this.userName
+        to: userName,
+        userName: this.userName
       });
-    }
-    ,
+    },
     sendMessage(message: any) {
 
       this.socket.emit('message:to', {

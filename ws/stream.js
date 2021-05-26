@@ -10,14 +10,16 @@ module.exports = (io) => {
                 id: socket.id
             }
 
-            socket.nsp.fetchSockets().then((e) => {
-                console.log(e.map(soc => {
-                    console.log(soc.userName);
-                    return soc.id
-                }).filter((value, index, self) => self.indexOf(value) === index).length, e.length);
-            });
+            // socket.nsp.fetchSockets().then((e) => {
+            //     console.log(e.map(soc => {
+            //         console.log(soc.userName);
+            //         return soc.id
+            //     }).filter((value, index, self) => self.indexOf(value) === index).length, e.length);
+            // });
 
             socket.join(socket.nsp.name)
+            socket.join(data.userName)
+
             const users = [];
             for (let client in clients) {
                 users.push(client);
@@ -25,12 +27,13 @@ module.exports = (io) => {
             socket.emit('users:online', users)
             socket.to(socket.nsp.name).emit('users:online', users)
             socket.to(socket.nsp.name).emit('new:user', {
-                name: data.userName
+                id: socket.id,
+                userName:data.userName
             })
         });
 
         socket.on('new:userStart', (data) => {
-            socket.to(socket.nsp.name).emit('new:userStart', {sender: data.sender});
+            socket.to(data.to).emit('new:userStart', data);
         })
 
         socket.on('message:to', (data) => {
@@ -51,15 +54,17 @@ module.exports = (io) => {
 
 
         socket.on("call-user", data => {
-            socket.to(socket.nsp.name).emit("call-made", {
+            socket.to(data.to).emit("call-made", {
                 offer: data.offer,
-                socket: socket.id
+                socket: socket.id,
+                userName: data.userName
             });
         });
         socket.on("make-answer", data => {
-            socket.to(socket.nsp.name).emit("answer-made", {
+            socket.to(data.to).emit("answer-made", {
                 socket: socket.id,
-                answer: data.answer
+                answer: data.answer,
+                userName:data.userName
             });
         });
 
