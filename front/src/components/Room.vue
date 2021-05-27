@@ -117,6 +117,9 @@ export default defineComponent({
             console.log('new:user', data);
             const self = this;
             this.peerConnections[data.userName] = new RTCPeerConnection();
+            if (self.videos[this.userName!]){
+              this.call_user( self.videos[this.userName!], data.userName)
+            }
             this.peerConnections[data.userName].ontrack = function ({streams: [stream]}) {
               self.videos[data.userName] = stream
             };
@@ -256,6 +259,7 @@ export default defineComponent({
       // });
     },
     async call_user(stream: any, userName: any){
+
       stream.getTracks().forEach((track: any) => this.peerConnections[userName!].addTrack(track, stream));
 
       const offer = await this.peerConnections[userName!].createOffer();
@@ -266,6 +270,7 @@ export default defineComponent({
         to: userName,
         userName: this.userName
       });
+
     },
     sendMessage(message: any) {
 
