@@ -185,10 +185,6 @@ export default defineComponent({
             await this.peerConnections[data.userName].setRemoteDescription(
                 new RTCSessionDescription(data.answer)
             );
-            // if (!this.isAlreadyCalling) {
-            //   await this.callUser();
-            //   this.isAlreadyCalling = true;
-            // }
           });
           socket.on("ice-candidates",  data => {
             const candidate = new RTCIceCandidate({sdpMLineIndex: data.sdpMLineIndex, candidate: data.candidate});
@@ -196,40 +192,6 @@ export default defineComponent({
           });
 
         });
-
-        // navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream => {
-        //   this.videos[this.userName] = stream;
-        //   stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
-        // }).catch(e => {
-        //   navigator.mediaDevices.getDisplayMedia(this.mediaConstraints).then(stream => {
-        //     this.videos[this.userName] = stream;
-        //     stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
-        //   })
-        // });
-
-        const self = this;
-        this.peerConnection.ontrack = function ({streams: [stream]}) {
-          self.videoS = stream;
-          // if (remoteVideo) {
-          //   remoteVideo.srcObject = stream;
-          // }
-        };
-        this.peerConnection.onicecandidate = function ({candidate}) {
-          if (candidate && candidate.candidate) {
-            candidate && socket.emit('ice-candidates', {
-              candidate: candidate.candidate,
-              userName: self.userName,
-              sdpMLineIndex: candidate.sdpMLineIndex
-            })
-          }
-          // const remoteVideo = document.getElementById("remote-video");
-          // if (remoteVideo) {
-          //   remoteVideo.srcObject = stream;
-          // }
-        };
-        this.peerConnection.onnegotiationneeded = function (event) {
-          console.log(event, 1);
-        };
       }
     },
     async callUser() {
@@ -237,12 +199,14 @@ export default defineComponent({
       const self = this;
        navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream => {
          self.videos[this.userName!] = stream;
-        stream.getTracks().forEach(track => this.peerConnection.addTrack(track, stream));
+         for ( const userName in self.peerConnections){
+
+           this.call_user(stream, userName)
+
+         }
       }).catch(e => {
         navigator.mediaDevices.getDisplayMedia(this.mediaConstraints).then(stream => {
           self.videos[this.userName!] = stream;
-
-          stream.getTracks().forEach(  (track: any) => this.peerConnection.addTrack(track, stream));
           for ( const userName in self.peerConnections){
 
             this.call_user(stream, userName)
@@ -250,13 +214,6 @@ export default defineComponent({
           }
         })
       });
-      // const offer = await this.peerConnection.createOffer();
-      // await this.peerConnection.setLocalDescription(new RTCSessionDescription(offer));
-      //
-      // this.socket.emit("call-user", {
-      //   offer,
-      //   to: this.userName
-      // });
     },
     async call_user(stream: any, userName: any){
 
