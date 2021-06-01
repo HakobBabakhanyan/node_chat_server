@@ -8,7 +8,7 @@
           <img class="w-8 h-8 object-cover"
                src="https://i.pinimg.com/originals/0c/3b/3a/0c3b3adb1a7530892e55ef36d3be6cb8.png" alt=""/>
           <div class="flex flex-col justify-center">
-            <p class="text-gray-900 dark:text-gray-300 font-semibold">{{ user }}</p>
+            <p class="text-gray-900 dark:text-gray-300 font-semibold">{{ user.name }}</p>
           </div>
         </div>
       </div>
@@ -23,10 +23,10 @@
 
       <div class="flex">
         <div v-for="user in users" class="m-2">
-          <video v-if="videos[user]" width="200" height="200" :srcObject="videos[user]" preload autoplay>
+          <video v-if="videos[user.id]" width="200" height="200" :srcObject="videos[user.id]" preload autoplay>
           </video>
           <div v-else>
-            {{ user }}
+            {{ user.id }}
           </div>
         </div>
         <!--        <video v-if="video" width="200" height="200" :srcObject ="video" preload autoplay>-->
@@ -77,6 +77,7 @@ export default defineComponent({
       videos: [] as MediaStream[],
       videoS: undefined,
       socket: {} as Socket,
+      socketId: toString(),
       peerConnection: {} as RTCPeerConnection,
       peerConnections: {} as RTCPeerConnection[],
       mediaConstraints: {
@@ -96,8 +97,6 @@ export default defineComponent({
     });
 
     this.peerConnection = new RTCPeerConnection();
-
-
   },
   methods: {
     connect() {
@@ -107,7 +106,10 @@ export default defineComponent({
 
         this.socket = socket;
         socket.on("connect", () => {
+          this.socketId = socket.id;
+
           socket.emit('init', {
+            socketId: this.socketId,
             userName: this.userName
           })
           socket.on('users:online', (users) => {
@@ -116,79 +118,79 @@ export default defineComponent({
           socket.on('new:user', (data) => {
             console.log('new:user', data);
             const self = this;
-            this.peerConnections[data.userName] = new RTCPeerConnection();
-            if (self.videos[this.userName!]){
-              this.call_user( self.videos[this.userName!], data.userName)
+            this.peerConnections[data.socketId] = new RTCPeerConnection();
+            if (self.videos[this.socketId!]) {
+              this.call_user(self.videos[this.socketId!], data.socketId)
             }
-            this.peerConnections[data.userName].ontrack = function ({streams: [stream]}) {
-              self.videos[data.userName] = stream
+            this.peerConnections[data.socketId].ontrack = function ({streams: [stream]}) {
+              self.videos[data.socketId] = stream
             };
-            this.peerConnections[data.userName].onicecandidate = function ({candidate}) {
+            this.peerConnections[data.socketId].onicecandidate = function ({candidate}) {
               if (candidate && candidate.candidate) {
-                console.log('ice-candidates', 'new:user');
                 candidate && socket.emit('ice-candidates', {
                   candidate: candidate.candidate,
-                  userName: self.userName,
+                  socketId: self.socketId,
                   sdpMLineIndex: candidate.sdpMLineIndex
                 })
-              }}
-            this.peerConnections[data.userName].onnegotiationneeded = function (event) {
-              console.log(event);
-            };
+              }
+            }
+            // this.peerConnections[data.socketId].onnegotiationneeded = function (event) {
+            //   console.log(event);
+            // };
             socket.emit('new:userStart', {
-              userName: this.userName,
-              to:data.userName
+              socketId: this.socketId,
+              to: data.socketId,
             })
           })
           socket.on('new:userStart', async (data) => {
             console.log('new:userStart', data);
             const self = this;
 
-            this.peerConnections[data.userName] = new RTCPeerConnection();
-            this.peerConnections[data.userName].ontrack = function ({streams: [stream]}) {
-              self.videos[data.userName] = stream
+            this.peerConnections[data.socketId] = new RTCPeerConnection();
+            this.peerConnections[data.socketId].ontrack = function ({streams: [stream]}) {
+              self.videos[data.socketId] = stream
               console.log(stream, 'new:userStart')
             };
-            this.peerConnections[data.userName].onicecandidate = function ({candidate}) {
+            this.peerConnections[data.socketId].onicecandidate = function ({candidate}) {
               if (candidate && candidate.candidate) {
-                console.log('ice-candidates', 'new:userStart');
                 candidate && socket.emit('ice-candidates', {
                   candidate: candidate.candidate,
-                  userName: self.userName,
+                  socketId: self.socketId,
                   sdpMLineIndex: candidate.sdpMLineIndex
                 })
-              }}
-            this.peerConnections[data.userName].onnegotiationneeded = function (event) {
-              console.log(event, 2);
-            };
+              }
+            }
+            // this.peerConnections[data.socketId].onnegotiationneeded = function (event) {
+            //   console.log(event, 2);
+            // };
 
           })
           socket.on('message:from', (data) => {
             this.messages = [...this.messages, data]
           })
           socket.on("call-made", async data => {
-            console.log('call-made');
-            await this.peerConnections[data.userName].setRemoteDescription(
+
+            await this.peerConnections[data.socketId].setRemoteDescription(
                 new RTCSessionDescription(data.offer)
             );
-            const answer = await this.peerConnections[data.userName].createAnswer();
-            await this.peerConnections[data.userName].setLocalDescription(new RTCSessionDescription(answer));
+            const answer = await this.peerConnections[data.socketId].createAnswer();
+            await this.peerConnections[data.socketId].setLocalDescription(new RTCSessionDescription(answer));
 
             socket.emit("make-answer", {
               answer,
-              to: data.userName,
-              userName: this.userName
+              to: data.socketId,
+              socketId:this.socketId
             });
           });
           socket.on("answer-made", async data => {
             console.log('answer-made');
-            await this.peerConnections[data.userName].setRemoteDescription(
+            await this.peerConnections[data.socketId].setRemoteDescription(
                 new RTCSessionDescription(data.answer)
             );
           });
-          socket.on("ice-candidates",  data => {
+          socket.on("ice-candidates", data => {
             const candidate = new RTCIceCandidate({sdpMLineIndex: data.sdpMLineIndex, candidate: data.candidate});
-            this.peerConnections[data.userName].addIceCandidate(candidate);
+            this.peerConnections[data.socketId].addIceCandidate(candidate);
           });
 
         });
@@ -197,17 +199,16 @@ export default defineComponent({
     async callUser() {
 
       const self = this;
-       navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream => {
-         self.videos[this.userName!] = stream;
-         for ( const userName in self.peerConnections){
+      navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream => {
+        self.videos[this.socketId!] = stream;
+        for (const userName in self.peerConnections) {
 
-           this.call_user(stream, userName)
-
-         }
+          this.call_user(stream, userName)
+        }
       }).catch(e => {
         navigator.mediaDevices.getDisplayMedia(this.mediaConstraints).then(stream => {
-          self.videos[this.userName!] = stream;
-          for ( const userName in self.peerConnections){
+          self.videos[this.socketId!] = stream;
+          for (const userName in self.peerConnections) {
 
             this.call_user(stream, userName)
 
@@ -215,7 +216,7 @@ export default defineComponent({
         })
       });
     },
-    async call_user(stream: any, userName: any){
+    async call_user(stream: any, userName: any) {
 
       stream.getTracks().forEach((track: any) => this.peerConnections[userName!].addTrack(track, stream));
 
@@ -225,7 +226,7 @@ export default defineComponent({
       this.socket.emit("call-user", {
         offer,
         to: userName,
-        userName: this.userName
+        socketId:this.socketId
       });
 
     },

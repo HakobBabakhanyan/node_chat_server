@@ -5,9 +5,9 @@ module.exports = (io) => {
 
         socket.on('init', (data) => {
             socket.userName = data.userName
-            clients[data.userName] = {
+            clients[data.socketId] = {
                 name: data.userName,
-                id: socket.id
+                id: data.socketId
             }
 
             // socket.nsp.fetchSockets().then((e) => {
@@ -18,17 +18,17 @@ module.exports = (io) => {
             // });
 
             socket.join(socket.nsp.name)
-            socket.join(data.userName)
+            socket.join(data.socketId)
 
-            const users = [];
-            for (let client in clients) {
-                users.push(client);
-            }
-            socket.emit('users:online', users)
-            socket.to(socket.nsp.name).emit('users:online', users)
+            // const users = [];
+            // for (let client in clients) {
+            //     users.push({});
+            // }
+            socket.emit('users:online', clients)
+            socket.to(socket.nsp.name).emit('users:online', clients)
             socket.to(socket.nsp.name).emit('new:user', {
                 id: socket.id,
-                userName:data.userName
+                socketId:data.socketId,
             })
         });
 
@@ -44,35 +44,31 @@ module.exports = (io) => {
         })
 
         socket.on('disconnect', () => {
-            delete clients[socket.userName]
-            const users = [];
-            for (let client in clients) {
-                users.push(client);
-            }
-            socket.to(socket.nsp.name).emit('users:online', users);
+            delete clients[socket.id]
+            socket.to(socket.nsp.name).emit('users:online', clients);
         })
 
 
         socket.on("call-user", data => {
+            console.log(data.to);
             socket.to(data.to).emit("call-made", {
                 offer: data.offer,
-                socket: socket.id,
-                userName: data.userName
+                socketId: data.socketId
             });
         });
         socket.on("make-answer", data => {
             socket.to(data.to).emit("answer-made", {
-                socket: socket.id,
                 answer: data.answer,
-                userName:data.userName
+                socketId:data.socketId
             });
         });
 
         socket.on('ice-candidates', (data)=>{
+            console.log(data.socketId)
                 socket.to(socket.nsp.name).emit('ice-candidates', {
                     candidate:data.candidate,
                     sdpMLineIndex:data.sdpMLineIndex,
-                    userName:data.userName
+                    socketId:data.socketId
                 });
 
         });
