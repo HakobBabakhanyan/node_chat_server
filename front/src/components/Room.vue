@@ -1,7 +1,23 @@
 <template>
+<!--START  component todo create new component-->
+  <div  v-if="!userConnected"  class="h-screen bg-green-50">
+    <div class="h-1/2 flex p-8 flex-col justify-between items-center">
+      <p class="text-2xl font-bold">Room name: <span class="text-green-500">{{ roomName }}</span></p>
+      <div class="">
+        <input class="shadow appearance-none border rounded py-1 px-3 text-grey-darker"
+               type="text" v-model="userName">
+        <button v-on:click="connect"
+                class="tracking-wider text-white bg-blue-500 px-4 py-1 text-sm rounded leading-loose mx-2 font-semibold">
+          Connect
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+<!--  END-->
   <div class="flex">
     <div class="w-2/3 ">
-      <p class="text-2xl text-green-600 font-bold">Room Name: {{ roomName }}</p>
       <div class="flex">
         <div v-for="user in users"
              class="bg-gray-100 m-2 border-yellow-600 dark:bg-gray-800 bg-opacity-95 border-opacity-60 | p-4 border-solid rounded-3xl border-2 | flex justify-around cursor-pointer | hover:bg-yellow-400 dark:hover:bg-yellow-600 hover:border-transparent | transition-colors duration-500">
@@ -12,21 +28,16 @@
           </div>
         </div>
       </div>
-      <div>
-        <input v-if="!userConnected" class="shadow appearance-none border rounded py-2 px-3 text-grey-darker"
-               type="text" v-model="userName">
-        <button v-if="!userConnected" v-on:click="connect"
-                class="tracking-wider text-white bg-blue-500 px-4 py-1 text-sm rounded leading-loose mx-2 font-semibold">
-          connect
-        </button>
-      </div>
 
-      <div class="flex">
+
+      <div class="flex w-full">
         <div v-for="user in users" class="m-2">
-          <video v-if="videos[user.id]" width="200" height="200" :srcObject="videos[user.id]" preload autoplay>
-          </video>
+          <div v-if="videos[user.id]" class="relative">
+            <video class="relative z-0" :srcObject="videos[user.id]" preload autoplay> </video>
+            <span class="absolute bottom-1 z-10 text-white">{{ user.name }}</span>
+          </div>
           <div v-else>
-            {{ user.id }}
+            {{ user.name }}
           </div>
         </div>
         <!--        <video v-if="video" width="200" height="200" :srcObject ="video" preload autoplay>-->
@@ -34,7 +45,7 @@
         <!--        <video v-if="videoS" width="200" height="200" :srcObject ="videoS" preload autoplay>-->
         <!--        </video>-->
       </div>
-      <button v-on:click="callUser"
+      <button v-if="false" v-on:click="callUser"
               class="tracking-wider text-white bg-blue-500 px-4 py-1 text-sm rounded leading-loose mx-2 font-semibold">
         video
       </button>
@@ -82,7 +93,7 @@ export default defineComponent({
       peerConnections: {} as RTCPeerConnection[],
       mediaConstraints: {
         audio: true,
-        video: {width: 200, height: 200},
+        video: true,
         // video: false,
       },
       isAlreadyCalling: false
@@ -107,7 +118,7 @@ export default defineComponent({
         this.socket = socket;
         socket.on("connect", () => {
           this.socketId = socket.id;
-
+          this.callUser()
           socket.emit('init', {
             socketId: this.socketId,
             userName: this.userName
@@ -134,9 +145,6 @@ export default defineComponent({
                 })
               }
             }
-            // this.peerConnections[data.socketId].onnegotiationneeded = function (event) {
-            //   console.log(event);
-            // };
             socket.emit('new:userStart', {
               socketId: this.socketId,
               to: data.socketId,
