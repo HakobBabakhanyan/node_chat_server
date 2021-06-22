@@ -28,8 +28,6 @@
           </div>
         </div>
       </div>
-
-
       <div class="flex w-full">
         <div v-for="user in users" class="m-2">
           <div v-if="videos[user.id]" class="relative">
@@ -103,7 +101,6 @@ export default defineComponent({
     axios.get(`https://127.0.0.1/room/${this.$route.params.roomId}`).then(e => {
       this.roomName = e.data.roomName;
     }).catch((e) => {
-      console.log(e.response.status);
       this.$router.push({path: '/'})
     });
 
@@ -113,7 +110,7 @@ export default defineComponent({
     connect() {
       if (this.userName) {
         this.userConnected = true;
-        const socket = io('https://127.0.0.1/room/3bdfec0517114c49e555');// todo: set ws://
+        const socket = io(`https://127.0.0.1/room/${this.$route.params.roomId}`);// todo: set ws://
 
         this.socket = socket;
         socket.on("connect", () => {

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require("bcrypt");
+const crypto = require('crypto');
 
 
 const roomSchema = mongoose.Schema({
@@ -10,7 +11,7 @@ const roomSchema = mongoose.Schema({
     key: {
         type: String,
         required: true,
-        default: require('crypto').randomBytes(10).toString('hex'),
+        default: () => crypto.randomBytes(10).toString('hex'),
         unique: true
     },
     created_at: {

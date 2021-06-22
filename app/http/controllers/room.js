@@ -4,17 +4,11 @@ const Room = require("../../models/room")
 async function store(req, res) {
 
 
-    const check = await Room.findOne({});
-
-    if(!check){
-        await Room.create(
-            {
-                name: req.body.name
-            }
-        )
-    }
-
-    const room = await Room.find({});
+    const room =  await Room.create(
+        {
+            name: req.body.name
+        }
+    )
 
     return res.json(room)
 }
