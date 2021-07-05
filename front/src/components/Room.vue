@@ -3,13 +3,17 @@
   <div  v-if="!userConnected"  class="h-screen bg-green-50">
     <div class="h-1/2 flex p-8 flex-col justify-between items-center">
       <p class="text-2xl font-bold">Room name: <span class="text-green-500">{{ roomName }}</span></p>
-      <div class="">
-        <input class="shadow appearance-none border rounded py-1 px-3 text-grey-darker"
-               type="text" v-model="userName">
-        <button v-on:click="connect"
-                class="tracking-wider text-white bg-blue-500 px-4 py-1 text-sm rounded leading-loose mx-2 font-semibold">
-          Connect
-        </button>
+      <div class="flex flex-col">
+        <span class="p-0 m-0 font-bold" >Name</span>
+        <div class="flex">
+          <input
+                 class="shadow appearance-none border rounded py-1 px-3 text-grey-darker"
+                 type="text" v-model="userName">
+          <button v-on:click="connect"
+                  class="tracking-wider text-white bg-blue-500 px-4 py-1 text-sm rounded leading-loose mx-2 font-semibold">
+            Connect
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -31,17 +35,17 @@
       <div class="flex w-full">
         <div v-for="user in users" class="m-2">
           <div v-if="videos[user.id]" class="relative">
-            <video class="relative z-0" :srcObject="videos[user.id]" preload autoplay> </video>
+            <video class="relative z-0"
+                   :srcObject="videos[user.id]"
+                   v-bind:muted="user.id === socketId"
+                   preload
+                   autoplay> </video>
             <span class="absolute bottom-1 z-10 text-white">{{ user.name }}</span>
           </div>
           <div v-else>
             {{ user.name }}
           </div>
         </div>
-        <!--        <video v-if="video" width="200" height="200" :srcObject ="video" preload autoplay>-->
-        <!--        </video>-->
-        <!--        <video v-if="videoS" width="200" height="200" :srcObject ="videoS" preload autoplay>-->
-        <!--        </video>-->
       </div>
       <button v-if="false" v-on:click="callUser"
               class="tracking-wider text-white bg-blue-500 px-4 py-1 text-sm rounded leading-loose mx-2 font-semibold">
@@ -51,6 +55,7 @@
     <div class="justify-end w-1/3 flex fixed right-0 top-0">
       <Chat
           :userName="userName"
+          :userId="socketId"
           :messages="messages"
           v-if="userName && userConnected"
           @sendMessage="sendMessage"/>
@@ -67,8 +72,9 @@ import io, {Socket} from "socket.io-client";
 
 
 declare interface Message {
-  name: string | null,
-  text: string
+  userId: string | null,
+  userName: string | null,
+  message: string
 }
 
 export default defineComponent({
@@ -198,6 +204,10 @@ export default defineComponent({
             this.peerConnections[data.socketId].addIceCandidate(candidate);
           });
 
+          socket.on('set:messages', (messages)=>{
+            this.messages = messages
+          })
+
         });
       }
     },
@@ -235,25 +245,20 @@ export default defineComponent({
       });
 
     },
-    sendMessage(message: any) {
+    sendMessage(message: string) {
 
       this.socket.emit('message:to', {
+        userId: this.socketId,
         userName: this.userName,
         message
       })
 
       this.messages = [...this.messages, {
-        name: this.userName,
+        userId: this.socketId,
+        userName: this.userName,
         text: message
       }]
 
-    },
-    async getUserFullMediaNew() {
-      try {
-        return await navigator.mediaDevices.getUserMedia(this.mediaConstraints);
-      } catch (e) {
-        console.log(e)
-      }
     },
   }
 })

@@ -1,5 +1,6 @@
 module.exports = (io) => {
     const clients = {};
+    const messages = [];
 
     return (socket) => {
 
@@ -19,11 +20,7 @@ module.exports = (io) => {
 
             socket.join(socket.nsp.name)
             socket.join(data.socketId)
-
-            // const users = [];
-            // for (let client in clients) {
-            //     users.push({});
-            // }
+            socket.emit('set:messages', messages)
             socket.emit('users:online', clients)
             socket.to(socket.nsp.name).emit('users:online', clients)
             socket.to(socket.nsp.name).emit('new:user', {
@@ -37,8 +34,14 @@ module.exports = (io) => {
         })
 
         socket.on('message:to', (data) => {
+            messages.push({
+                userName: data.userName,
+                userId: data.userId,
+                text: data.message
+            })
             socket.to(socket.nsp.name).emit('message:from', {
-                name: data.userName,
+                userName: data.userName,
+                userId: data.userId,
                 text: data.message
             })
         })
@@ -64,7 +67,6 @@ module.exports = (io) => {
         });
 
         socket.on('ice-candidates', (data)=>{
-            console.log(data.socketId)
                 socket.to(socket.nsp.name).emit('ice-candidates', {
                     candidate:data.candidate,
                     sdpMLineIndex:data.sdpMLineIndex,
@@ -72,7 +74,6 @@ module.exports = (io) => {
                 });
 
         });
-
 
     }
 };

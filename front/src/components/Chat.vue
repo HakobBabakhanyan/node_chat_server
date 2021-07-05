@@ -4,16 +4,16 @@
       <div id="messages"
            class="flex flex-col space-y-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch">
         <div v-for="message in messages" class="chat-message">
-          <div v-bind:class="{'justify-end': (userName === message.name)}" class="flex items-end">
+          <div v-bind:class="{'justify-end': (userId === message.userId)}" class="flex items-end">
             <div class="flex flex-col space-y-2 text-xs max-w-xs mx-2 order-2 items-start">
               <div>
-                <span v-bind:class="[(userName !== message.name) ? 'rounded-bl-none': 'rounded-br-none']" class="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
+                <span v-bind:class="[(userId !== message.userId) ? 'rounded-bl-none': 'rounded-br-none']" class="px-4 py-2 rounded-lg inline-block bg-gray-300 text-gray-600">
                   {{ message.text }}
                 </span>
               </div>
             </div>
-            <div  v-bind:class="{'hidden': (userName === message.name)}" class="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-500 flex-shrink-0">
-              <span class="text-sm">{{ message.name }}</span>
+            <div  v-bind:class="{'hidden': (userId === message.userId)}" class="flex items-center justify-center h-12 w-12 rounded-full bg-indigo-500 flex-shrink-0">
+              <span class="text-sm">{{ message.userName }}</span>
             </div>
             <!--            <img-->
             <!--                src="https://images.unsplash.com/photo-1549078642-b2ba4bda0cdb?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=facearea&amp;facepad=3&amp;w=144&amp;h=144"-->
@@ -117,6 +117,9 @@ export default {
       type: Array
     },
     userName: {
+      type: String
+    },
+    userId: {
       type: String
     },
   },
