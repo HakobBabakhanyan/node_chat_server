@@ -74,8 +74,28 @@ import io, {Socket} from "socket.io-client";
 declare interface Message {
   userId: string | null,
   userName: string | null,
-  message: string
+  text: string
 }
+
+declare interface Videos {
+  [key :string]: MediaStream
+}
+
+declare global {
+  interface MediaDevices {
+    getDisplayMedia(constraints?: MediaStreamConstraints): Promise<MediaStream>;
+  }
+
+  // if constraints config still lose some prop, you can define it by yourself also
+  interface MediaTrackConstraintSet {
+    displaySurface?: ConstrainDOMString;
+    logicalSurface?: ConstrainBoolean;
+    // more....
+  }
+}
+// OR const mediaDevices = navigator.mediaDevices as any;
+// const stream = await mediaDevices.getDisplayMedia();
+
 
 export default defineComponent({
   name: 'Room',
@@ -85,12 +105,10 @@ export default defineComponent({
       roomName: null,
       messages: [] as Message[],
       users: [],
-      pc: {} as RTCPeerConnection[],
       userConnected: false,
       userName: null,
       video: undefined,
-      videos: [] as MediaStream[],
-      videoS: undefined,
+      videos: {} as Videos,
       socket: {} as Socket,
       socketId: toString(),
       peerConnection: {} as RTCPeerConnection,
@@ -99,14 +117,13 @@ export default defineComponent({
         audio: true,
         video: true,
         // video: false,
-      },
-      isAlreadyCalling: false
+      }
     }
   },
   mounted() {
     axios.get(`https://127.0.0.1/room/${this.$route.params.roomId}`).then(e => {
       this.roomName = e.data.roomName;
-    }).catch((e) => {
+    }).catch(() => {
       this.$router.push({path: '/'})
     });
 
@@ -212,7 +229,6 @@ export default defineComponent({
       }
     },
     async callUser() {
-
       const self = this;
       navigator.mediaDevices.getUserMedia(this.mediaConstraints).then(stream => {
         self.videos[this.socketId!] = stream;
@@ -232,33 +248,26 @@ export default defineComponent({
       });
     },
     async call_user(stream: any, userName: any) {
-
       stream.getTracks().forEach((track: any) => this.peerConnections[userName!].addTrack(track, stream));
-
       const offer = await this.peerConnections[userName!].createOffer();
       await this.peerConnections[userName!].setLocalDescription(new RTCSessionDescription(offer));
-
       this.socket.emit("call-user", {
         offer,
         to: userName,
         socketId:this.socketId
       });
-
     },
     sendMessage(message: string) {
-
       this.socket.emit('message:to', {
         userId: this.socketId,
         userName: this.userName,
         message
       })
-
       this.messages = [...this.messages, {
         userId: this.socketId,
         userName: this.userName,
         text: message
       }]
-
     },
   }
 })
