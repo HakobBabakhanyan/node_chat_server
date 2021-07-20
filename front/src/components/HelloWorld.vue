@@ -37,7 +37,7 @@ export default defineComponent({
   methods: {
     createRoom() {
       if (this.roomName) {
-        axios.post(`https://127.0.0.1/room/create`, {
+        axios.post(`https://192.168.0.106/room/create`, {
           name: this.roomName
         }).then(e => {
           this.$router.push({path: `/room/${e.data.key}`})
@@ -46,7 +46,7 @@ export default defineComponent({
     }
   },
   mounted() {
-    axios.get(`https://127.0.0.1/room/index`).then(e => {
+    axios.get(`https://192.168.0.106/room/index`).then(e => {
       this.rooms = e.data
     }).catch((e) => {
       alert('error')
