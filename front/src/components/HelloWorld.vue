@@ -46,11 +46,12 @@ export default defineComponent({
     }
   },
   mounted() {
-    axios.get(`https://192.168.0.106/room/index`).then(e => {
-      this.rooms = e.data
-    }).catch((e) => {
-      alert('error')
-    });
+
+    // axios.get(`https://192.168.0.106/room/index`).then(e => {
+    //   this.rooms = e.data
+    // }).catch((e) => {
+    //   alert('error')
+    // });
   }
 })
 </script>

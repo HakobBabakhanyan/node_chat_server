@@ -62,8 +62,8 @@
             @sendMessage="sendMessage"/>
       </div>
     </div>
-    <div class="w-full mt-auto bg-black">
-      <button class="p-0 w-16 h-16 bg-red-600 rounded-full mouse shadow transition ease-in duration-200 focus:outline-none flex justify-center items-center">
+    <div class="w-full mt-auto bg-black flex items-center justify-center p-2">
+      <button v-on:click="closeCall()" class="p-0 w-16 h-16 bg-red-600 rounded-full mouse shadow transition ease-in duration-200 focus:outline-none flex justify-center items-center">
         <svg xmlns="http://www.w3.org/2000/svg" style="width: 40px" viewBox="0 0 20 20" fill="white">
           <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
         </svg>
@@ -120,11 +120,9 @@ export default defineComponent({
       users: [],
       userConnected: false,
       userName: toString(),
-      video: undefined,
       videos: {} as Videos,
       socket: {} as Socket,
       socketId: toString(),
-      peerConnection: {} as RTCPeerConnection,
       peerConnections: {} as RTCPeerConnection[],
       mediaConstraints: {
         audio: true,
@@ -138,24 +136,21 @@ export default defineComponent({
     }
   },
   mounted() {
-    console.log(import.meta.env)
+    console.log(this.serverName)
     axios.get(`https://${this.serverName}/room/${this.$route.params.roomId}`).then(e => {
       this.roomName = e.data.roomName;
     }).catch(() => {
-
       this.$router.push({path: '/'})
     });
 
     this.userName = sessionStorage.getItem('userName')!;
 
-    this.peerConnection = new RTCPeerConnection();
   },
   methods: {
     connect() {
       if (this.userName) {
         sessionStorage.setItem('userName', this.userName!)
         this.userConnected = true;
-
         const socket = io(`https://${this.serverName}/room/${this.$route.params.roomId}`);// todo: set ws://
 
         this.socket = socket;
@@ -292,6 +287,19 @@ export default defineComponent({
         text: message
       }]
     },
+    closeCall(){
+
+      this.socket.disconnect()
+      for (const videosKey in this.videos) {
+        if(this.videos.hasOwnProperty(videosKey)){
+          const tracks = this.videos[videosKey].getTracks();
+          tracks.forEach((track) => {
+            track.stop();
+          });
+        }
+      }
+      this.$router.push({path:'/'})
+    }
   }
 })
 </script>

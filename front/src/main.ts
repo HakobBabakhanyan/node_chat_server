@@ -23,7 +23,11 @@ const app = createApp(App)
 
 // app.config.globalProperties.$serverName  = import.meta.env.VITE_APP_SERVER_URL
 app.provide('serverName', import.meta.env.VITE_APP_SERVER_URL)
-
+declare module '@vue/runtime-core' {
+    interface ComponentCustomProperties  {
+        serverName:string // replace it with the right type
+    }
+}
 app.use(router)
 
 app.mount('#app')
